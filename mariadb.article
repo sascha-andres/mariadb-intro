@@ -1,0 +1,102 @@
+Run a mariadb with docker
+5 Jul 2017
+Tags: docker, mariadb
+
+Sascha Andres
+Principal Architect
+sascha.andres@outlook.com
+https://www.livingit.de
+
+* What is mariadb
+
+MariaDB is a community-developed fork of the MySQL relational database management system intended to remain free under the GNU GPL.
+
+It is a fork of MySQL after the acquisition of MySQL from Oracle.
+
+.link https://en.wikipedia.org/wiki/MariaDB MariaDB on wikipedia
+
+* What is docker
+
+Docker is a software technology providing containers, promoted by the company Docker, Inc.[6] Docker provides an additional layer of abstraction and automation of operating-system-level virtualization on Windows and Linux.
+
+.link https://en.wikipedia.org/wiki/Docker_(software) docker on wikipedia
+
+* Easily run a mariadb instance
+
+Running mariadb is easy:
+
+    docker run --name some-mariadb -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mariadb:tag
+
+* Changing the configuration
+
+To have an image with a changed config you have two options:
+
+- mount the my.cnf
+- create your image based on the base image
+
+* Mount the my.cnf
+
+    docker run --name some-mariadb -v my.cnf:/etc/mysql/conf.d/additional.cnf -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mariadb:tag
+
+You could also overwrite the existing:
+
+    docker run --name some-mariadb -v my.cnf:/etc/mysql/mysql.cnf -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mariadb:tag
+
+Warning: 
+
+If you replace the my.cnf *you* have to set all things right on *your* own
+
+* Build your own image
+
+Create a `Dockerfile` copying the my.cnf into the container:
+
+    FROM mariadb:10.1
+    label MAINTAINER Sascha Andres <sascha.andres@outlook.com>
+
+    COPY my.cnf /etc/mysql/my.cnf
+
+    RUN chown root:root /etc/mysql/my.cnf
+
+* Have a build instruction in the `docker-compose.yaml` to copy your my.cnf into the image:
+
+    mariadb:
+        build: src/
+        hostname: mariadb
+        ports:
+        - 3306:3306
+        environment:
+        - MYSQL_ROOT_PASSWORD=Demonstration
+        - MYSQL_DATABASE=gotest
+        - MYSQL_USER=gomeetup
+        - MYSQL_PASSWORD=20170706
+        volumes:
+        - /data/docker/demo-mariadb/mariadb/var/lib/mysql:/var/lib/mysql
+        restart: always
+
+* For convenience add phpmyadmin
+
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        hostname: phpmyadmin
+        ports:
+        - 8088:80
+        links:
+        - mariadb
+        environment:
+        - PMA_HOST=mariadb
+        restart: always
+
+* Build and run
+
+Now you can do
+
+    docker-compose build
+    docker-compose up
+
+Use with mysql client tools or any other software. Even connect with a docker image:
+
+    docker run -it --link some-mariadb:mysql --rm mariadb sh -c 'exec mysql \
+        -h"$MYSQL_PORT_3306_TCP_ADDR" \
+        -P"$MYSQL_PORT_3306_TCP_PORT" \
+        -uroot \
+        -p"$MYSQL_ENV_MYSQL_ROOT_PASSWORD"'

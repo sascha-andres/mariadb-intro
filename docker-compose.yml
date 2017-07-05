@@ -1,0 +1,26 @@
+version: '2'
+
+services:
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    hostname: phpmyadmin
+    ports:
+      - 8088:80
+    links:
+      - mariadb
+    environment:
+      - PMA_HOST=mariadb
+    restart: always
+  mariadb:
+    build: src/
+    hostname: mariadb
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=Demonstration
+      - MYSQL_DATABASE=gotest
+      - MYSQL_USER=gomeetup
+      - MYSQL_PASSWORD=20170706
+    volumes:
+      - /data/docker/demo-mariadb/mariadb/var/lib/mysql:/var/lib/mysql
+    restart: always
